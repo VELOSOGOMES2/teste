@@ -51,7 +51,7 @@ local function notify(txt)
     shownMessages[txt] = true
     pcall(function()
         game.StarterGui:SetCore("SendNotification", {
-            Title = "🚗 Tianta AutoFarm",
+            Title = "🚗 AutoFarm",
             Text = txt,
             Duration = 3
         })
