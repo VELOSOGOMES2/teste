@@ -1,13 +1,11 @@
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local player = game.Players.LocalPlayer
 
--- Configuração
 local autoFarmRunning = false
 local startCFrame = CFrame.new(18.4, 42.6, -4235.6) * CFrame.Angles(0, math.rad(0), 0)
 local endZ = -5149.8
 local shownMessages = {}
 
--- Notificação
 local function notify(txt)
     if shownMessages[txt] then return end
     shownMessages[txt] = true
@@ -20,7 +18,6 @@ local function notify(txt)
     end)
 end
 
--- Pegar carro atual
 local function getCar()
     local char = player.Character or player.CharacterAdded:Wait()
     local humanoid = char:FindFirstChildOfClass("Humanoid")
@@ -34,24 +31,33 @@ local function getCar()
     return nil
 end
 
--- Simular tecla W
 local function pressW(state)
     VirtualInputManager:SendKeyEvent(state, "W", false, game)
 end
 
--- Criar UI
+-- UI
 local screenGui = Instance.new("ScreenGui", game.CoreGui)
 screenGui.Name = "TiantaFarmUI"
 
-local frame = Instance.new("Frame", screenGui)
-frame.Size = UDim2.new(0, 250, 0, 130)
-frame.Position = UDim2.new(0, 20, 0.4, 0)
-frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-frame.Active = true
-frame.Draggable = true
+local mainFrame = Instance.new("Frame", screenGui)
+mainFrame.Size = UDim2.new(0, 250, 0, 130)
+mainFrame.Position = UDim2.new(0, 20, 0.4, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+
+-- Header Draggable
+local header = Instance.new("TextLabel", mainFrame)
+header.Size = UDim2.new(1, 0, 0, 30)
+header.Position = UDim2.new(0, 0, 0, 0)
+header.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+header.Text = "Tianta AutoFarm"
+header.TextColor3 = Color3.new(1,1,1)
+header.Font = Enum.Font.GothamBold
+header.TextSize = 14
+header.Active = true
+header.Draggable = true -- Arrasta o menu todo
 
 -- Botão principal
-local button = Instance.new("TextButton", frame)
+local button = Instance.new("TextButton", mainFrame)
 button.Size = UDim2.new(1, -20, 0, 40)
 button.Position = UDim2.new(0, 10, 0, 40)
 button.Text = "AutoFarm OFF"
@@ -60,20 +66,20 @@ button.TextColor3 = Color3.new(1, 1, 1)
 button.Font = Enum.Font.GothamBold
 button.TextSize = 16
 
--- Botão minimizar
-local minimize = Instance.new("TextButton", frame)
+-- Minimizar
+local minimize = Instance.new("TextButton", mainFrame)
 minimize.Size = UDim2.new(0, 25, 0, 25)
-minimize.Position = UDim2.new(1, -55, 0, 5)
+minimize.Position = UDim2.new(1, -55, 0, 2)
 minimize.Text = "-"
 minimize.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
 minimize.TextColor3 = Color3.new(1, 1, 1)
 minimize.Font = Enum.Font.GothamBold
 minimize.TextSize = 16
 
--- Botão fechar
-local close = Instance.new("TextButton", frame)
+-- Fechar
+local close = Instance.new("TextButton", mainFrame)
 close.Size = UDim2.new(0, 25, 0, 25)
-close.Position = UDim2.new(1, -30, 0, 5)
+close.Position = UDim2.new(1, -30, 0, 2)
 close.Text = "X"
 close.BackgroundColor3 = Color3.fromRGB(120, 0, 0)
 close.TextColor3 = Color3.new(1, 1, 1)
@@ -83,7 +89,7 @@ close.TextSize = 16
 -- Threads
 local autoDriveThread, teleportThread
 
--- Botão ON/OFF
+-- Botão AutoFarm ON/OFF
 button.MouseButton1Click:Connect(function()
     autoFarmRunning = not autoFarmRunning
     button.Text = autoFarmRunning and "AutoFarm ON" or "AutoFarm OFF"
@@ -117,8 +123,7 @@ button.MouseButton1Click:Connect(function()
             while autoFarmRunning do
                 local car = getCar()
                 if car then
-                    local pos = car.PrimaryPart.Position
-                    if pos.Z <= endZ then
+                    if car.PrimaryPart.Position.Z <= endZ then
                         car:SetPrimaryPartCFrame(startCFrame)
                         wait(1)
                     end
@@ -134,20 +139,20 @@ button.MouseButton1Click:Connect(function()
     end
 end)
 
--- Minimizar/Restaurar
+-- Minimizar
 local minimized = false
 minimize.MouseButton1Click:Connect(function()
     minimized = not minimized
     button.Visible = not minimized
-    frame.Size = minimized and UDim2.new(0, 250, 0, 35) or UDim2.new(0, 250, 0, 130)
+    mainFrame.Size = minimized and UDim2.new(0, 250, 0, 35) or UDim2.new(0, 250, 0, 130)
 end)
 
--- Fechar completamente
+-- Fechar tudo
 close.MouseButton1Click:Connect(function()
     autoFarmRunning = false
     pressW(false)
     if autoDriveThread then task.cancel(autoDriveThread) end
     if teleportThread then task.cancel(teleportThread) end
-    frame:Destroy()
+    mainFrame:Destroy()
     screenGui:Destroy()
 end)
