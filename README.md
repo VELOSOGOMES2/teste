@@ -1,10 +1,10 @@
--- Tianta AutoFarm Menu (com coords visíveis)
+-- Tianta AutoFarm Menu (com rotação perfeita e coords visíveis)
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local player = game.Players.LocalPlayer
 
 local autoDrive = false
 local teleportActive = false
-local startPos = nil
+local startCFrame = nil
 local endPos = nil
 
 -- Notificação
@@ -18,7 +18,7 @@ function notify(txt)
     end)
 end
 
--- Detecção via assento
+-- Detecta o carro com base no assento
 local function getCar()
     local character = player.Character or player.CharacterAdded:Wait()
     local humanoid = character:FindFirstChildOfClass("Humanoid")
@@ -32,7 +32,7 @@ local function getCar()
     return nil
 end
 
--- Pressionar tecla W
+-- Simula tecla W
 local function pressW(state)
     VirtualInputManager:SendKeyEvent(state, "W", false, game)
 end
@@ -47,11 +47,11 @@ frame.BorderSizePixel = 0
 frame.Active = true
 frame.Draggable = true
 
--- Textos de coordenadas
+-- Texto com coords
 local coordsLabel = Instance.new("TextLabel", frame)
 coordsLabel.Size = UDim2.new(1, -20, 0, 80)
 coordsLabel.Position = UDim2.new(0, 10, 0, 210)
-coordsLabel.Text = "📍 Coords:\nInício: --\nFim: --"
+coordsLabel.Text = "Coords:\nInício: --\nFim: --"
 coordsLabel.BackgroundTransparency = 1
 coordsLabel.TextColor3 = Color3.new(1, 1, 1)
 coordsLabel.TextWrapped = true
@@ -60,12 +60,12 @@ coordsLabel.TextSize = 14
 coordsLabel.TextXAlignment = Enum.TextXAlignment.Left
 
 local function updateCoordsText()
-    local s = startPos and string.format("%.1f, %.1f, %.1f", startPos.X, startPos.Y, startPos.Z) or "--"
+    local s = startCFrame and string.format("%.1f, %.1f, %.1f", startCFrame.Position.X, startCFrame.Position.Y, startCFrame.Position.Z) or "--"
     local e = endPos and string.format("%.1f, %.1f, %.1f", endPos.X, endPos.Y, endPos.Z) or "--"
     coordsLabel.Text = "Coords:\nInício: " .. s .. "\nFim: " .. e
 end
 
--- Criar botão
+-- Criar botões
 local function createButton(text, order, callback)
     local btn = Instance.new("TextButton", frame)
     btn.Size = UDim2.new(1, -20, 0, 40)
@@ -78,11 +78,11 @@ local function createButton(text, order, callback)
     btn.MouseButton1Click:Connect(callback)
 end
 
--- Botões
+-- Botão 1: Definir Ponto Inicial
 createButton("Definir Ponto Inicial", 1, function()
     local car = getCar()
     if car then
-        startPos = car.PrimaryPart.Position
+        startCFrame = car.PrimaryPart.CFrame
         notify("Ponto inicial definido.")
         updateCoordsText()
     else
@@ -90,6 +90,7 @@ createButton("Definir Ponto Inicial", 1, function()
     end
 end)
 
+-- Botão 2: Definir Ponto Final
 createButton("Definir Ponto Final", 2, function()
     local car = getCar()
     if car then
@@ -101,6 +102,7 @@ createButton("Definir Ponto Final", 2, function()
     end
 end)
 
+-- Botão 3: Auto Drive
 createButton("Iniciar Auto Drive", 3, function()
     if autoDrive then
         autoDrive = false
@@ -118,13 +120,14 @@ createButton("Iniciar Auto Drive", 3, function()
     end
 end)
 
+-- Botão 4: Teleport
 createButton("Ativar Teleport", 4, function()
     if teleportActive then
         teleportActive = false
         notify("Teleport desligado.")
     else
-        if not startPos or not endPos then
-            notify("Define os pontos primeiro.")
+        if not startCFrame or not endPos then
+            notify("Define os dois pontos primeiro.")
             return
         end
         teleportActive = true
@@ -135,8 +138,8 @@ createButton("Ativar Teleport", 4, function()
                 if car then
                     local pos = car.PrimaryPart.Position
                     if pos.Z >= endPos.Z then
-                        notify("Teleportando...")
-                        car:SetPrimaryPartCFrame(CFrame.new(startPos))
+                        notify("Teleportando para o início...")
+                        car:SetPrimaryPartCFrame(startCFrame)
                         wait(1)
                     end
                 end
