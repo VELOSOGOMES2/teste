@@ -44,19 +44,42 @@ mainFrame.Size = UDim2.new(0, 250, 0, 130)
 mainFrame.Position = UDim2.new(0, 20, 0.4, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 
--- Header Draggable
+-- Header com nome e arraste manual
 local header = Instance.new("TextLabel", mainFrame)
 header.Size = UDim2.new(1, 0, 0, 30)
 header.Position = UDim2.new(0, 0, 0, 0)
 header.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 header.Text = "Tianta AutoFarm"
-header.TextColor3 = Color3.new(1,1,1)
+header.TextColor3 = Color3.new(1, 1, 1)
 header.Font = Enum.Font.GothamBold
 header.TextSize = 14
-header.Active = true
-header.Draggable = true -- Arrasta o menu todo
 
--- Botão principal
+-- Arrastar menu com mouse (sem Draggable)
+local dragging = false
+local dragStart, startPos
+header.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+		dragStart = input.Position
+		startPos = mainFrame.Position
+	end
+end)
+header.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement and dragging then
+		local delta = input.Position - dragStart
+		mainFrame.Position = UDim2.new(
+			startPos.X.Scale, startPos.X.Offset + delta.X,
+			startPos.Y.Scale, startPos.Y.Offset + delta.Y
+		)
+	end
+end)
+header.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = false
+	end
+end)
+
+-- Botão principal AutoFarm
 local button = Instance.new("TextButton", mainFrame)
 button.Size = UDim2.new(1, -20, 0, 40)
 button.Position = UDim2.new(0, 10, 0, 40)
@@ -91,68 +114,67 @@ local autoDriveThread, teleportThread
 
 -- Botão AutoFarm ON/OFF
 button.MouseButton1Click:Connect(function()
-    autoFarmRunning = not autoFarmRunning
-    button.Text = autoFarmRunning and "AutoFarm ON" or "AutoFarm OFF"
-    shownMessages = {}
+	autoFarmRunning = not autoFarmRunning
+	button.Text = autoFarmRunning and "AutoFarm ON" or "AutoFarm OFF"
+	shownMessages = {}
 
-    if autoFarmRunning then
-        notify("AutoFarm iniciado")
+	if autoFarmRunning then
+		notify("AutoFarm iniciado")
+		local car = getCar()
+		if not car then
+			notify("Entra no carro para iniciar")
+		end
+		repeat
+			car = getCar()
+			wait(1)
+		until car
 
-        local car = getCar()
-        if not car then
-            notify("Entra no carro para iniciar")
-        end
+		wait(0.5)
+		car:SetPrimaryPartCFrame(startCFrame)
+		wait(1)
 
-        repeat
-            car = getCar()
-            wait(1)
-        until car
+		autoDriveThread = task.spawn(function()
+			while autoFarmRunning do
+				pressW(true)
+				wait(10)
+			end
+		end)
 
-        wait(0.5)
-        car:SetPrimaryPartCFrame(startCFrame)
-        wait(1)
+		teleportThread = task.spawn(function()
+			while autoFarmRunning do
+				local car = getCar()
+				if car then
+					if car.PrimaryPart.Position.Z <= endZ then
+						car:SetPrimaryPartCFrame(startCFrame)
+						wait(1)
+					end
+				end
+				wait(0.1)
+			end
+		end)
 
-        autoDriveThread = task.spawn(function()
-            while autoFarmRunning do
-                pressW(true)
-                wait(10)
-            end
-        end)
-
-        teleportThread = task.spawn(function()
-            while autoFarmRunning do
-                local car = getCar()
-                if car then
-                    if car.PrimaryPart.Position.Z <= endZ then
-                        car:SetPrimaryPartCFrame(startCFrame)
-                        wait(1)
-                    end
-                end
-                wait(0.1)
-            end
-        end)
-    else
-        notify("AutoFarm parado")
-        pressW(false)
-        if autoDriveThread then task.cancel(autoDriveThread) end
-        if teleportThread then task.cancel(teleportThread) end
-    end
+	else
+		notify("AutoFarm parado")
+		pressW(false)
+		if autoDriveThread then task.cancel(autoDriveThread) end
+		if teleportThread then task.cancel(teleportThread) end
+	end
 end)
 
 -- Minimizar
 local minimized = false
 minimize.MouseButton1Click:Connect(function()
-    minimized = not minimized
-    button.Visible = not minimized
-    mainFrame.Size = minimized and UDim2.new(0, 250, 0, 35) or UDim2.new(0, 250, 0, 130)
+	minimized = not minimized
+	button.Visible = not minimized
+	mainFrame.Size = minimized and UDim2.new(0, 250, 0, 35) or UDim2.new(0, 250, 0, 130)
 end)
 
 -- Fechar tudo
 close.MouseButton1Click:Connect(function()
-    autoFarmRunning = false
-    pressW(false)
-    if autoDriveThread then task.cancel(autoDriveThread) end
-    if teleportThread then task.cancel(teleportThread) end
-    mainFrame:Destroy()
-    screenGui:Destroy()
+	autoFarmRunning = false
+	pressW(false)
+	if autoDriveThread then task.cancel(autoDriveThread) end
+	if teleportThread then task.cancel(teleportThread) end
+	mainFrame:Destroy()
+	screenGui:Destroy()
 end)
