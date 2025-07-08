@@ -6,19 +6,19 @@ local autoFarmRunning = false
 local startCFrame = CFrame.new(18.4, 42.6, -4235.6) * CFrame.Angles(0, math.rad(0), 0)
 local endZ = -5149.8
 
--- Notificação (garante que só mostra uma vez por tipo)
-local lastNotification = ""
+-- Controle de notificações únicas
+local shownMessages = {}
+
 local function notify(txt)
-    if lastNotification ~= txt then
-        lastNotification = txt
-        pcall(function()
-            game.StarterGui:SetCore("SendNotification", {
-                Title = "Tianta AutoFarm",
-                Text = txt,
-                Duration = 3
-            })
-        end)
-    end
+    if shownMessages[txt] then return end
+    shownMessages[txt] = true
+    pcall(function()
+        game.StarterGui:SetCore("SendNotification", {
+            Title = "Tianta AutoFarm",
+            Text = txt,
+            Duration = 3
+        })
+    end)
 end
 
 -- Detecta o carro atual
@@ -43,6 +43,7 @@ end
 -- Interface
 local screenGui = Instance.new("ScreenGui", game.CoreGui)
 screenGui.Name = "TiantaFarmUI"
+
 local frame = Instance.new("Frame", screenGui)
 frame.Size = UDim2.new(0, 200, 0, 100)
 frame.Position = UDim2.new(0, 20, 0.4, 0)
@@ -65,7 +66,7 @@ local autoDriveThread, teleportThread
 button.MouseButton1Click:Connect(function()
     autoFarmRunning = not autoFarmRunning
     button.Text = autoFarmRunning and "AutoFarm ON" or "AutoFarm OFF"
-    lastNotification = "" -- reseta para mostrar novas notificações
+    shownMessages = {} -- Reseta mensagens ao ligar/desligar
 
     if autoFarmRunning then
         notify("AutoFarm iniciado")
@@ -97,8 +98,6 @@ button.MouseButton1Click:Connect(function()
                 if car then
                     local pos = car.PrimaryPart.Position
                     if pos.Z <= endZ then
-                        notify("Teleportando para início...")
-                        wait(0.5)
                         car:SetPrimaryPartCFrame(startCFrame)
                         wait(1)
                     end
