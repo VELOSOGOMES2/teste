@@ -68,6 +68,13 @@ local function getCar()
     return nil
 end
 
+-- Verifica se o jogador está dentro do carro
+local function isInCar()
+    local char = player.Character
+    local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+    return humanoid and humanoid.SeatPart ~= nil
+end
+
 -- Simula tecla W
 local function pressW(state)
     VirtualInputManager:SendKeyEvent(state, "W", false, game)
@@ -179,16 +186,14 @@ button.MouseButton1Click:Connect(function()
 
         teleportThread = task.spawn(function()
             while autoFarmRunning do
-                local car = getCar()
-                if not car or not car.Parent then
-                    stopAutoFarm("Carro removido, AutoFarm desligado")
+                if not isInCar() then
+                    stopAutoFarm("Saiu do carro, AutoFarm desligado")
                     return
                 end
 
-                -- 🛑 Saiu do carro
-                local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-                if humanoid and not humanoid.SeatPart then
-                    stopAutoFarm("Saiu do carro, AutoFarm desligado")
+                local car = getCar()
+                if not car or not car.Parent then
+                    stopAutoFarm("Carro removido, AutoFarm desligado")
                     return
                 end
 
