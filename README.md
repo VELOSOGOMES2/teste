@@ -1,21 +1,24 @@
+-- Tianta AutoFarm Menu (com rotação perfeita e coords visíveis)
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local player = game.Players.LocalPlayer
 
-local autoFarmRunning = false
+local autoDrive = false
+local teleportActive = false
+local startCFrame = nil
+local endPos = nil
 
-local START_CFRAME = CFrame.new(-1.0, 42.6, -4241.4)
-local END_Z = -7245.7
-
+-- Notificação
 function notify(txt)
     pcall(function()
         game.StarterGui:SetCore("SendNotification", {
-            Title = "Tianta AutoFarm",
+            Title = "Tianta Menu",
             Text = txt,
             Duration = 4
         })
     end)
 end
 
+-- Detecta o carro com base no assento
 local function getCar()
     local character = player.Character or player.CharacterAdded:Wait()
     local humanoid = character:FindFirstChildOfClass("Humanoid")
@@ -29,63 +32,119 @@ local function getCar()
     return nil
 end
 
+-- Simula tecla W
 local function pressW(state)
     VirtualInputManager:SendKeyEvent(state, "W", false, game)
 end
 
--- Interface simples com botão AutoFarm
+-- Criar GUI
 local screenGui = Instance.new("ScreenGui", game.CoreGui)
 local frame = Instance.new("Frame", screenGui)
-frame.Size = UDim2.new(0, 200, 0, 100)
-frame.Position = UDim2.new(0, 20, 0.4, 0)
-frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.Size = UDim2.new(0, 250, 0, 340)
+frame.Position = UDim2.new(0, 10, 0.3, 0)
+frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
 
-local button = Instance.new("TextButton", frame)
-button.Size = UDim2.new(1, -20, 0, 40)
-button.Position = UDim2.new(0, 10, 0, 30)
-button.Text = "Iniciar AutoFarm"
-button.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-button.TextColor3 = Color3.new(1, 1, 1)
-button.Font = Enum.Font.GothamBold
-button.TextSize = 16
+-- Texto com coords
+local coordsLabel = Instance.new("TextLabel", frame)
+coordsLabel.Size = UDim2.new(1, -20, 0, 80)
+coordsLabel.Position = UDim2.new(0, 10, 0, 210)
+coordsLabel.Text = "Coords:\nInício: --\nFim: --"
+coordsLabel.BackgroundTransparency = 1
+coordsLabel.TextColor3 = Color3.new(1, 1, 1)
+coordsLabel.TextWrapped = true
+coordsLabel.Font = Enum.Font.Gotham
+coordsLabel.TextSize = 14
+coordsLabel.TextXAlignment = Enum.TextXAlignment.Left
 
-button.MouseButton1Click:Connect(function()
-    if autoFarmRunning then return end
-    autoFarmRunning = true
-    notify("AutoFarm iniciado")
+local function updateCoordsText()
+    local s = startCFrame and string.format("%.1f, %.1f, %.1f", startCFrame.Position.X, startCFrame.Position.Y, startCFrame.Position.Z) or "--"
+    local e = endPos and string.format("%.1f, %.1f, %.1f", endPos.X, endPos.Y, endPos.Z) or "--"
+    coordsLabel.Text = "Coords:\nInício: " .. s .. "\nFim: " .. e
+end
 
-    local car = nil
-    repeat
-        car = getCar()
-        if not car then
-            notify("Entra no carro para iniciar.")
-            wait(1)
-        end
-    until car
+-- Criar botões
+local function createButton(text, order, callback)
+    local btn = Instance.new("TextButton", frame)
+    btn.Size = UDim2.new(1, -20, 0, 40)
+    btn.Position = UDim2.new(0, 10, 0, 10 + (order - 1) * 50)
+    btn.Text = text
+    btn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 16
+    btn.MouseButton1Click:Connect(callback)
+end
 
-    wait(0.5)
-    car:SetPrimaryPartCFrame(START_CFRAME)
-    wait(1)
+-- Botão 1: Definir Ponto Inicial
+createButton("Definir Ponto Inicial", 1, function()
+    local car = getCar()
+    if car then
+        startCFrame = car.PrimaryPart.CFrame
+        notify("Ponto inicial definido.")
+        updateCoordsText()
+    else
+        notify("Entra no carro antes.")
+    end
+end)
 
-    spawn(function()
-        while autoFarmRunning do
-            pressW(true)
-            wait(10)
-        end
-    end)
+-- Botão 2: Definir Ponto Final
+createButton("Definir Ponto Final", 2, function()
+    local car = getCar()
+    if car then
+        endPos = car.PrimaryPart.Position
+        notify("Ponto final definido.")
+        updateCoordsText()
+    else
+        notify("Entra no carro antes.")
+    end
+end)
 
-    spawn(function()
-        while autoFarmRunning do
-            local car = getCar()
-            if car then
-                local pos = car.PrimaryPart.Position
-                if pos.Z <= END_Z then
-                    notify("Teleportando...")
-                    car:SetPrimaryPartCFrame(START_CFRAME)
-                    wait(1)
-                end
+-- Botão 3: Auto Drive
+createButton("Iniciar Auto Drive", 3, function()
+    if autoDrive then
+        autoDrive = false
+        pressW(false)
+        notify("Auto Drive parado.")
+    else
+        autoDrive = true
+        notify("Auto Drive ligado.")
+        spawn(function()
+            while autoDrive do
+                pressW(true)
+                wait(10)
             end
-            wait(0.1)
+        end)
+    end
+end)
+
+-- Botão 4: Teleport
+createButton("Ativar Teleport", 4, function()
+    if teleportActive then
+        teleportActive = false
+        notify("Teleport desligado.")
+    else
+        if not startCFrame or not endPos then
+            notify("Define os dois pontos primeiro.")
+            return
         end
-    end)
+        teleportActive = true
+        notify("Teleport ligado.")
+        spawn(function()
+            while teleportActive do
+                local car = getCar()
+                if car then
+                    local pos = car.PrimaryPart.Position
+                    if pos.Z >= endPos.Z then
+                        notify("Teleportando para o início...")
+                        car:SetPrimaryPartCFrame(startCFrame)
+                        wait(1)
+                    end
+                end
+                wait(0.1)
+            end
+        end)
+    end
 end)
