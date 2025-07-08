@@ -35,7 +35,7 @@ pcall(function()
     end)
 end)
 
--- Config
+-- Configurações
 local autoFarmRunning = false
 local startCFrame = CFrame.new(18.4, 42.6, -4235.6) * CFrame.Angles(0, math.rad(0), 0)
 local endZ = -5149.8
@@ -95,25 +95,25 @@ header.TextSize = 14
 local dragging = false
 local dragStart, startPos
 header.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = true
-		dragStart = input.Position
-		startPos = mainFrame.Position
-	end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = mainFrame.Position
+    end
 end)
 header.InputChanged:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseMovement and dragging then
-		local delta = input.Position - dragStart
-		mainFrame.Position = UDim2.new(
-			startPos.X.Scale, startPos.X.Offset + delta.X,
-			startPos.Y.Scale, startPos.Y.Offset + delta.Y
-		)
-	end
+    if input.UserInputType == Enum.UserInputType.MouseMovement and dragging then
+        local delta = input.Position - dragStart
+        mainFrame.Position = UDim2.new(
+            startPos.X.Scale, startPos.X.Offset + delta.X,
+            startPos.Y.Scale, startPos.Y.Offset + delta.Y
+        )
+    end
 end)
 header.InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = false
-	end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
 end)
 
 local button = Instance.new("TextButton", mainFrame)
@@ -146,73 +146,73 @@ close.TextSize = 16
 -- Threads
 local autoDriveThread, teleportThread
 
+local function stopAutoFarm(reason)
+    autoFarmRunning = false
+    button.Text = "AutoFarm OFF"
+    pressW(false)
+    if autoDriveThread then task.cancel(autoDriveThread) end
+    if teleportThread then task.cancel(teleportThread) end
+    if reason then notify(reason) end
+end
+
 button.MouseButton1Click:Connect(function()
-	autoFarmRunning = not autoFarmRunning
-	button.Text = autoFarmRunning and "AutoFarm ON" or "AutoFarm OFF"
-	shownMessages = {}
+    autoFarmRunning = not autoFarmRunning
+    button.Text = autoFarmRunning and "AutoFarm ON" or "AutoFarm OFF"
+    shownMessages = {}
 
-	if autoFarmRunning then
-		notify("AutoFarm iniciado")
-		local car = getCar()
-		if not car then
-			notify("Entra no carro para iniciar")
-		end
-		repeat
-			car = getCar()
-			wait(1)
-		until car
+    if autoFarmRunning then
+        notify("AutoFarm iniciado")
+        local car = getCar()
+        if not car then notify("Entra no carro para iniciar") end
+        repeat car = getCar() wait(1) until car
 
-		wait(0.5)
-		car:SetPrimaryPartCFrame(startCFrame)
-		wait(1)
+        wait(0.5)
+        car:SetPrimaryPartCFrame(startCFrame)
+        wait(1)
 
-		autoDriveThread = task.spawn(function()
-			while autoFarmRunning do
-				pressW(true)
-				wait(10)
-			end
-		end)
+        autoDriveThread = task.spawn(function()
+            while autoFarmRunning do
+                pressW(true)
+                wait(10)
+            end
+        end)
 
-		teleportThread = task.spawn(function()
-			while autoFarmRunning do
-				local car = getCar()
-				if not car or not car.Parent then
-					notify("Carro removido, AutoFarm desligado")
-					autoFarmRunning = false
-					pressW(false)
-					if autoDriveThread then task.cancel(autoDriveThread) end
-					if teleportThread then task.cancel(teleportThread) end
-					button.Text = "AutoFarm OFF"
-					return
-				end
-				if car.PrimaryPart.Position.Z <= endZ then
-					car:SetPrimaryPartCFrame(startCFrame)
-					wait(1)
-				end
-				wait(0.1)
-			end
-		end)
+        teleportThread = task.spawn(function()
+            while autoFarmRunning do
+                local car = getCar()
+                if not car or not car.Parent then
+                    stopAutoFarm("Carro removido, AutoFarm desligado")
+                    return
+                end
 
-	else
-		notify("AutoFarm parado")
-		pressW(false)
-		if autoDriveThread then task.cancel(autoDriveThread) end
-		if teleportThread then task.cancel(teleportThread) end
-	end
+                -- 🛑 Saiu do carro
+                local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+                if humanoid and not humanoid.SeatPart then
+                    stopAutoFarm("Saiu do carro, AutoFarm desligado")
+                    return
+                end
+
+                if car.PrimaryPart.Position.Z <= endZ then
+                    car:SetPrimaryPartCFrame(startCFrame)
+                    wait(1)
+                end
+                wait(0.1)
+            end
+        end)
+
+    else
+        stopAutoFarm("AutoFarm parado")
+    end
 end)
 
-local minimized = false
 minimize.MouseButton1Click:Connect(function()
-	minimized = not minimized
-	button.Visible = not minimized
-	mainFrame.Size = minimized and UDim2.new(0, 250, 0, 35) or UDim2.new(0, 250, 0, 130)
+    local min = (mainFrame.Size.Y.Offset <= 40)
+    button.Visible = min
+    mainFrame.Size = min and UDim2.new(0, 250, 0, 130) or UDim2.new(0, 250, 0, 35)
 end)
 
 close.MouseButton1Click:Connect(function()
-	autoFarmRunning = false
-	pressW(false)
-	if autoDriveThread then task.cancel(autoDriveThread) end
-	if teleportThread then task.cancel(teleportThread) end
-	mainFrame:Destroy()
-	screenGui:Destroy()
+    stopAutoFarm()
+    mainFrame:Destroy()
+    screenGui:Destroy()
 end)
