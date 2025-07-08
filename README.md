@@ -1,27 +1,28 @@
-
+-- Tianta AutoFarm Menu (com definicao de pontos)
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local player = game.Players.LocalPlayer
 
+-- Variáveis
 local autoDrive = false
 local teleportActive = false
-local startPos = Vector3.new(0, 0, 0)
-local endZ = 3000 -- você pode ajustar aqui
+local startPos = nil
+local endPos = nil
 
-
+-- Função de notificação
 function notify(txt)
     pcall(function()
         game.StarterGui:SetCore("SendNotification", {
-            Title = "Tiânta Menu ",
+            Title = "Tianta Menu",
             Text = txt,
             Duration = 4
         })
     end)
 end
 
-
+-- UI
 local screenGui = Instance.new("ScreenGui", game.CoreGui)
 local frame = Instance.new("Frame", screenGui)
-frame.Size = UDim2.new(0, 200, 0, 220)
+frame.Size = UDim2.new(0, 220, 0, 260)
 frame.Position = UDim2.new(0, 10, 0.3, 0)
 frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 frame.BorderSizePixel = 0
@@ -31,7 +32,7 @@ frame.Draggable = true
 local function createButton(text, order, callback)
     local btn = Instance.new("TextButton", frame)
     btn.Size = UDim2.new(1, -20, 0, 40)
-    btn.Position = UDim2.new(0, 10, 0, 10 + (order - 1) * 45)
+    btn.Position = UDim2.new(0, 10, 0, 10 + (order - 1) * 50)
     btn.Text = text
     btn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -40,51 +41,87 @@ local function createButton(text, order, callback)
     btn.MouseButton1Click:Connect(callback)
 end
 
-
+-- Pressionar ou soltar tecla W
 local function pressW(state)
     VirtualInputManager:SendKeyEvent(state, "W", false, game)
 end
 
-createButton(" Iniciar Auto Drive", 1, function()
-    autoDrive = true
-    notify("Auto Drive ON")
-    spawn(function()
-        while autoDrive do
-            pressW(true)
-            wait(10)
+-- Função para obter carro
+local function getCar()
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj:IsA("Model") and obj:FindFirstChild("Engine") and obj.Name == player.Name then
+            return obj
         end
-    end)
-end)
+    end
+    return nil
+end
 
-createButton(" Ativar Teleport", 2, function()
-    teleportActive = true
-    notify("Teleport ON ")
-    spawn(function()
-        while teleportActive do
-            local car = workspace:FindFirstChild(player.Name)
-            if car and car.PrimaryPart and car.PrimaryPart.Position.Z > endZ then
-                notify("Voltando para o início da pista!")
-                car:SetPrimaryPartCFrame(CFrame.new(startPos))
-                wait(1)
-            end
-            wait(0.5)
-        end
-    end)
-end)
-
-createButton(" Definir Início Aqui", 3, function()
-    local car = workspace:FindFirstChild(player.Name)
+-- Botão 1: Definir ponto inicial
+createButton("Definir Ponto Inicial", 1, function()
+    local car = getCar()
     if car and car.PrimaryPart then
         startPos = car.PrimaryPart.Position
-        notify("Início definido! ")
+        notify("Ponto inicial definido com sucesso.")
     else
-        notify("Entra no carro, amor ")
+        notify("Entra no carro antes de definir o ponto.")
     end
 end)
 
-createButton(" Parar Tudo", 4, function()
-    autoDrive = false
-    teleportActive = false
-    pressW(false)
-    notify("Tudo parado. Te esperando ")
+-- Botão 2: Definir ponto final
+createButton("Definir Ponto Final", 2, function()
+    local car = getCar()
+    if car and car.PrimaryPart then
+        endPos = car.PrimaryPart.Position
+        notify("Ponto final definido com sucesso.")
+    else
+        notify("Entra no carro antes de definir o ponto.")
+    end
+end)
+
+-- Botão 3: Iniciar Auto Drive
+createButton("Iniciar Auto Drive", 3, function()
+    if autoDrive then
+        autoDrive = false
+        pressW(false)
+        notify("Auto Drive desativado.")
+    else
+        autoDrive = true
+        notify("Auto Drive ativado.")
+        spawn(function()
+            while autoDrive do
+                pressW(true)
+                wait(10)
+            end
+        end)
+    end
+end)
+
+-- Botão 4: Ativar Teleport
+createButton("Ativar Teleport", 4, function()
+    if teleportActive then
+        teleportActive = false
+        notify("Teleport desativado.")
+    else
+        if not startPos or not endPos then
+            notify("Define os dois pontos primeiro.")
+            return
+        end
+        teleportActive = true
+        notify("Teleport ativado.")
+        spawn(function()
+            while teleportActive do
+                local car = getCar()
+                if car and car.PrimaryPart then
+                    local pos = car.PrimaryPart.Position
+                    local dist = (pos - endPos).Magnitude
+                    if dist < 30 then -- tolerância de distância do final
+                        notify("Teleportando de volta ao início.")
+                        car:SetPrimaryPartCFrame(CFrame.new(startPos))
+                        wait(1)
+                    end
+                end
+                wait(0.5)
+            end
+        end)
+    end
 end)
