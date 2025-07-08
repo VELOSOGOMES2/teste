@@ -1,27 +1,29 @@
--- Tianta AutoFarm Menu (com rotação perfeita e coords visíveis)
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local player = game.Players.LocalPlayer
 
-local autoDrive = false
+-- Configuração
 local teleportActive = false
 local startCFrame = nil
 local endPos = nil
+local shownMessages = {}
 
 -- Notificação
-function notify(txt)
+local function notify(txt)
+    if shownMessages[txt] then return end
+    shownMessages[txt] = true
     pcall(function()
         game.StarterGui:SetCore("SendNotification", {
             Title = "Tianta Menu",
             Text = txt,
-            Duration = 4
+            Duration = 3
         })
     end)
 end
 
--- Detecta o carro com base no assento
+-- Detecta o carro atual
 local function getCar()
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    local char = player.Character or player.CharacterAdded:Wait()
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
     if humanoid and humanoid.SeatPart then
         local seat = humanoid.SeatPart
         local car = seat:FindFirstAncestorOfClass("Model")
@@ -32,25 +34,74 @@ local function getCar()
     return nil
 end
 
--- Simula tecla W
-local function pressW(state)
-    VirtualInputManager:SendKeyEvent(state, "W", false, game)
-end
-
 -- Criar GUI
 local screenGui = Instance.new("ScreenGui", game.CoreGui)
-local frame = Instance.new("Frame", screenGui)
-frame.Size = UDim2.new(0, 250, 0, 340)
-frame.Position = UDim2.new(0, 10, 0.3, 0)
-frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-frame.BorderSizePixel = 0
-frame.Active = true
-frame.Draggable = true
+screenGui.Name = "TiantaTeleportUI"
 
--- Texto com coords
-local coordsLabel = Instance.new("TextLabel", frame)
-coordsLabel.Size = UDim2.new(1, -20, 0, 80)
-coordsLabel.Position = UDim2.new(0, 10, 0, 210)
+local mainFrame = Instance.new("Frame", screenGui)
+mainFrame.Size = UDim2.new(0, 280, 0, 280)
+mainFrame.Position = UDim2.new(0, 20, 0.3, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+mainFrame.Active = true
+mainFrame.Draggable = true
+
+local header = Instance.new("TextLabel", mainFrame)
+header.Size = UDim2.new(1, 0, 0, 30)
+header.Position = UDim2.new(0, 0, 0, 0)
+header.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+header.Text = "Tianta Teleport Menu"
+header.TextColor3 = Color3.new(1, 1, 1)
+header.Font = Enum.Font.GothamBold
+header.TextSize = 14
+
+-- Arrastar
+local dragging, dragStart, startPos
+header.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = mainFrame.Position
+    end
+end)
+header.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement and dragging then
+        local delta = input.Position - dragStart
+        mainFrame.Position = UDim2.new(
+            startPos.X.Scale, startPos.X.Offset + delta.X,
+            startPos.Y.Scale, startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+header.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+
+-- Minimizar
+local minimize = Instance.new("TextButton", mainFrame)
+minimize.Size = UDim2.new(0, 25, 0, 25)
+minimize.Position = UDim2.new(1, -55, 0, 2)
+minimize.Text = "-"
+minimize.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+minimize.TextColor3 = Color3.new(1, 1, 1)
+minimize.Font = Enum.Font.GothamBold
+minimize.TextSize = 16
+
+-- Fechar
+local close = Instance.new("TextButton", mainFrame)
+close.Size = UDim2.new(0, 25, 0, 25)
+close.Position = UDim2.new(1, -30, 0, 2)
+close.Text = "X"
+close.BackgroundColor3 = Color3.fromRGB(120, 0, 0)
+close.TextColor3 = Color3.new(1, 1, 1)
+close.Font = Enum.Font.GothamBold
+close.TextSize = 16
+
+-- Coords display
+local coordsLabel = Instance.new("TextLabel", mainFrame)
+coordsLabel.Size = UDim2.new(1, -20, 0, 60)
+coordsLabel.Position = UDim2.new(0, 10, 0, 190)
 coordsLabel.Text = "Coords:\nInício: --\nFim: --"
 coordsLabel.BackgroundTransparency = 1
 coordsLabel.TextColor3 = Color3.new(1, 1, 1)
@@ -65,63 +116,45 @@ local function updateCoordsText()
     coordsLabel.Text = "Coords:\nInício: " .. s .. "\nFim: " .. e
 end
 
--- Criar botões
+-- Criação de botão
 local function createButton(text, order, callback)
-    local btn = Instance.new("TextButton", frame)
+    local btn = Instance.new("TextButton", mainFrame)
     btn.Size = UDim2.new(1, -20, 0, 40)
-    btn.Position = UDim2.new(0, 10, 0, 10 + (order - 1) * 50)
+    btn.Position = UDim2.new(0, 10, 0, 35 + (order - 1) * 50)
     btn.Text = text
-    btn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+    btn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 16
+    btn.TextSize = 15
     btn.MouseButton1Click:Connect(callback)
 end
 
--- Botão 1: Definir Ponto Inicial
-createButton("Definir Ponto Inicial", 1, function()
+-- Botão: Definir Início
+createButton("Definir Início", 1, function()
     local car = getCar()
     if car then
         startCFrame = car.PrimaryPart.CFrame
-        notify("Ponto inicial definido.")
+        notify("Ponto inicial definido!")
         updateCoordsText()
     else
         notify("Entra no carro antes.")
     end
 end)
 
--- Botão 2: Definir Ponto Final
-createButton("Definir Ponto Final", 2, function()
+-- Botão: Definir Fim
+createButton("Definir Fim", 2, function()
     local car = getCar()
     if car then
         endPos = car.PrimaryPart.Position
-        notify("Ponto final definido.")
+        notify("Ponto final definido!")
         updateCoordsText()
     else
         notify("Entra no carro antes.")
     end
 end)
 
--- Botão 3: Auto Drive
-createButton("Iniciar Auto Drive", 3, function()
-    if autoDrive then
-        autoDrive = false
-        pressW(false)
-        notify("Auto Drive parado.")
-    else
-        autoDrive = true
-        notify("Auto Drive ligado.")
-        spawn(function()
-            while autoDrive do
-                pressW(true)
-                wait(10)
-            end
-        end)
-    end
-end)
-
--- Botão 4: Teleport
-createButton("Ativar Teleport", 4, function()
+-- Botão: Teleport
+createButton("Ativar Teleport", 3, function()
     if teleportActive then
         teleportActive = false
         notify("Teleport desligado.")
@@ -135,16 +168,29 @@ createButton("Ativar Teleport", 4, function()
         spawn(function()
             while teleportActive do
                 local car = getCar()
-                if car then
-                    local pos = car.PrimaryPart.Position
-                    if pos.Z >= endPos.Z then
-                        notify("Teleportando para o início...")
-                        car:SetPrimaryPartCFrame(startCFrame)
-                        wait(1)
-                    end
+                if car and car.PrimaryPart.Position.Z >= endPos.Z then
+                    car:SetPrimaryPartCFrame(startCFrame)
+                    wait(1)
                 end
                 wait(0.1)
             end
         end)
     end
+end)
+
+-- Minimizar e Fechar
+minimize.MouseButton1Click:Connect(function()
+    local collapsed = mainFrame.Size.Y.Offset <= 35
+    coordsLabel.Visible = collapsed
+    for _, obj in pairs(mainFrame:GetChildren()) do
+        if obj:IsA("TextButton") and obj ~= close and obj ~= minimize then
+            obj.Visible = collapsed
+        end
+    end
+    mainFrame.Size = collapsed and UDim2.new(0, 280, 0, 280) or UDim2.new(0, 280, 0, 35)
+end)
+
+close.MouseButton1Click:Connect(function()
+    teleportActive = false
+    screenGui:Destroy()
 end)
