@@ -1,93 +1,113 @@
--- Tiânta Autofarm Menu (versão fixa)  
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local player = game.Players.LocalPlayer
 
-local autoFarm = false
-local car = nil
-local startRotationY = 0
+-- AutoFarm configs
+local autoFarmRunning = false
+local startPosition = Vector3.new(18.4, 42.6, -4235.6)
+local endZ = -5149.8
 
--- Coordenadas fixas (imagem que você enviou)
-local startPos = Vector3.new(18.4, 42.6, -4235.6)
-local endPos = Vector3.new(-191.4, 50.2, -5149.8)
-
--- Notificação
-function notify(txt)
+-- Envia notificação
+local function notify(txt)
     pcall(function()
         game.StarterGui:SetCore("SendNotification", {
-            Title = "Tiânta Menu",
+            Title = "Tiânta AutoFarm",
             Text = txt,
-            Duration = 4
+            Duration = 3
         })
     end)
 end
 
--- Detectar carro
-function getCar()
-    local character = player.Character
-    if not character then return nil end
-    local seatPart = character:FindFirstChildWhichIsA("BasePart")
-    if not seatPart then return nil end
-
-    local vehicle = seatPart:FindFirstAncestorOfClass("Model")
-    if vehicle and vehicle:FindFirstChild("Humanoid") == nil then
-        return vehicle
+-- Pega o carro atual
+local function getCar()
+    local char = player.Character or player.CharacterAdded:Wait()
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    if humanoid and humanoid.SeatPart then
+        local seat = humanoid.SeatPart
+        local car = seat:FindFirstAncestorOfClass("Model")
+        if car and car.PrimaryPart then
+            return car
+        end
     end
     return nil
 end
 
--- Criar botão
+-- Simula pressionar tecla W
+local function pressW(state)
+    VirtualInputManager:SendKeyEvent(state, "W", false, game)
+end
+
+-- Cria interface com botão ON/OFF
 local screenGui = Instance.new("ScreenGui", game.CoreGui)
 local frame = Instance.new("Frame", screenGui)
 frame.Size = UDim2.new(0, 200, 0, 100)
-frame.Position = UDim2.new(0, 0.3, 0, 0)
-frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+frame.Position = UDim2.new(0, 20, 0.4, 0)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 
 local button = Instance.new("TextButton", frame)
-button.Size = UDim2.new(1, 0, 1, 0)
-button.TextSize = 18
-button.TextColor3 = Color3.fromRGB(255, 255, 255)
-button.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-button.Font = Enum.Font.GothamBold
+button.Size = UDim2.new(1, -20, 0, 40)
+button.Position = UDim2.new(0, 10, 0, 30)
 button.Text = "AutoFarm OFF"
+button.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+button.TextColor3 = Color3.new(1, 1, 1)
+button.Font = Enum.Font.GothamBold
+button.TextSize = 16
 
--- AutoFarm Loop
-function autoFarmLoop()
-    while autoFarm do
-        car = getCar()
-        if car and car.PrimaryPart then
-            -- Salvar rotação original
-            local rot = car.PrimaryPart.Orientation.Y
-            startRotationY = rot
+-- Threads do autofarm
+local autoDriveThread, teleportThread
 
-            -- Teleportar para o início com rotação correta
-            car:SetPrimaryPartCFrame(CFrame.new(startPos) * CFrame.Angles(0, math.rad(startRotationY), 0))
-            wait(0.5)
-
-            -- Dirigir até o fim
-            for i = 1, 150 do
-                if not autoFarm then break end
-                VirtualInputManager:SendKeyEvent(true, "W", false, game)
-                wait(0.03)
-                VirtualInputManager:SendKeyEvent(false, "W", false, game)
-                wait(0.02)
-            end
-
-            -- Teleportar para o fim
-            car:SetPrimaryPartCFrame(CFrame.new(endPos) * CFrame.Angles(0, math.rad(startRotationY), 0))
-            wait(0.5)
-        else
-            notify("Entra no carro primeiro!")
-        end
-        wait(1)
-    end
-end
-
--- Botão ON/OFF
 button.MouseButton1Click:Connect(function()
-    autoFarm = not autoFarm
-    button.Text = autoFarm and "AutoFarm ON" or "AutoFarm OFF"
-    notify(autoFarm and "AutoFarm Iniciado!" or "AutoFarm Parado.")
-    if autoFarm then
-        task.spawn(autoFarmLoop)
+    autoFarmRunning = not autoFarmRunning
+    button.Text = autoFarmRunning and "AutoFarm ON" or "AutoFarm OFF"
+
+    if autoFarmRunning then
+        notify("AutoFarm iniciado")
+        local car
+        repeat
+            car = getCar()
+            if not car then
+                notify("Entra no carro para iniciar")
+                wait(1)
+            end
+        until car
+
+        -- Captura rotação atual do carro
+        local rotationY = car.PrimaryPart.Orientation.Y
+        local startCFrame = CFrame.new(startPosition) * CFrame.Angles(0, math.rad(rotationY), 0)
+
+        wait(0.5)
+        car:SetPrimaryPartCFrame(startCFrame)
+        wait(1)
+
+        -- Movimento automático
+        autoDriveThread = task.spawn(function()
+            while autoFarmRunning do
+                pressW(true)
+                wait(10)
+            end
+        end)
+
+        -- Teleporte automático
+        teleportThread = task.spawn(function()
+            while autoFarmRunning do
+                local car = getCar()
+                if car then
+                    local pos = car.PrimaryPart.Position
+                    if pos.Z <= endZ then
+                        notify("Voltando ao início...")
+                        local rotY = car.PrimaryPart.Orientation.Y
+                        local resetCFrame = CFrame.new(startPosition) * CFrame.Angles(0, math.rad(rotY), 0)
+                        car:SetPrimaryPartCFrame(resetCFrame)
+                        wait(1)
+                    end
+                end
+                wait(0.1)
+            end
+        end)
+
+    else
+        notify("AutoFarm parado")
+        pressW(false)
+        if autoDriveThread then task.cancel(autoDriveThread) end
+        if teleportThread then task.cancel(teleportThread) end
     end
 end)
