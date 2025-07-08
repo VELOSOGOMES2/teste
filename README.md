@@ -1,5 +1,6 @@
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local player = game.Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
 
 -- Config
 local autoFarmRunning = false
@@ -37,13 +38,43 @@ end
 
 -- UI
 local screenGui = Instance.new("ScreenGui", game.CoreGui)
-local frame = Instance.new("Frame", screenGui)
+local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 200, 0, 100)
 frame.Position = UDim2.new(0, 20, 0.4, 0)
 frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-frame.Active = true
-frame.Draggable = true -- Aqui está a mágica que permite arrastar a janela!
+frame.Parent = screenGui
 
+-- Sistema manual de arrastar a janela
+local dragging, dragInput, dragStart, startPos
+
+frame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = frame.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+frame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+-- Botão
 local button = Instance.new("TextButton", frame)
 button.Size = UDim2.new(1, -20, 0, 40)
 button.Position = UDim2.new(0, 10, 0, 30)
@@ -71,7 +102,6 @@ button.MouseButton1Click:Connect(function()
             end
         until car
 
-        -- Pega rotação real do carro
         local rotationY = car.PrimaryPart.Orientation.Y
         local startCFrame = CFrame.new(18.4, 42.6, -4235.6) * CFrame.Angles(0, math.rad(rotationY), 0)
 
@@ -79,7 +109,6 @@ button.MouseButton1Click:Connect(function()
         car:SetPrimaryPartCFrame(startCFrame)
         wait(1)
 
-        -- Movimento automático
         autoDriveThread = task.spawn(function()
             while autoFarmRunning do
                 pressW(true)
@@ -87,7 +116,6 @@ button.MouseButton1Click:Connect(function()
             end
         end)
 
-        -- Teleport automático
         teleportThread = task.spawn(function()
             while autoFarmRunning do
                 local car = getCar()
@@ -104,7 +132,6 @@ button.MouseButton1Click:Connect(function()
                 wait(0.1)
             end
         end)
-
     else
         notify("AutoFarm parado")
         pressW(false)
