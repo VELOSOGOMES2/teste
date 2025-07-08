@@ -1,23 +1,22 @@
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local player = game.Players.LocalPlayer
 
--- AutoFarm configs
+-- Config
 local autoFarmRunning = false
-local startPosition = Vector3.new(18.4, 42.6, -4235.6)
 local endZ = -5149.8
 
--- Envia notificação
+-- Notificação
 local function notify(txt)
     pcall(function()
         game.StarterGui:SetCore("SendNotification", {
-            Title = "Tiânta AutoFarm",
+            Title = "Tianta AutoFarm",
             Text = txt,
             Duration = 3
         })
     end)
 end
 
--- Pega o carro atual
+-- Detecta o carro atual
 local function getCar()
     local char = player.Character or player.CharacterAdded:Wait()
     local humanoid = char:FindFirstChildOfClass("Humanoid")
@@ -31,12 +30,12 @@ local function getCar()
     return nil
 end
 
--- Simula pressionar tecla W
+-- Simula tecla W
 local function pressW(state)
     VirtualInputManager:SendKeyEvent(state, "W", false, game)
 end
 
--- Cria interface com botão ON/OFF
+-- UI
 local screenGui = Instance.new("ScreenGui", game.CoreGui)
 local frame = Instance.new("Frame", screenGui)
 frame.Size = UDim2.new(0, 200, 0, 100)
@@ -52,7 +51,7 @@ button.TextColor3 = Color3.new(1, 1, 1)
 button.Font = Enum.Font.GothamBold
 button.TextSize = 16
 
--- Threads do autofarm
+-- Ativar/desativar AutoFarm
 local autoDriveThread, teleportThread
 
 button.MouseButton1Click:Connect(function()
@@ -70,9 +69,9 @@ button.MouseButton1Click:Connect(function()
             end
         until car
 
-        -- Captura rotação atual do carro
+        -- Pega rotação real do carro
         local rotationY = car.PrimaryPart.Orientation.Y
-        local startCFrame = CFrame.new(startPosition) * CFrame.Angles(0, math.rad(rotationY), 0)
+        local startCFrame = CFrame.new(18.4, 42.6, -4235.6) * CFrame.Angles(0, math.rad(rotationY), 0)
 
         wait(0.5)
         car:SetPrimaryPartCFrame(startCFrame)
@@ -86,17 +85,17 @@ button.MouseButton1Click:Connect(function()
             end
         end)
 
-        -- Teleporte automático
+        -- Teleport automático
         teleportThread = task.spawn(function()
             while autoFarmRunning do
                 local car = getCar()
                 if car then
                     local pos = car.PrimaryPart.Position
                     if pos.Z <= endZ then
-                        notify("Voltando ao início...")
+                        notify("Teleportando para início...")
                         local rotY = car.PrimaryPart.Orientation.Y
-                        local resetCFrame = CFrame.new(startPosition) * CFrame.Angles(0, math.rad(rotY), 0)
-                        car:SetPrimaryPartCFrame(resetCFrame)
+                        local fixedCFrame = CFrame.new(18.4, 42.6, -4235.6) * CFrame.Angles(0, math.rad(rotY), 0)
+                        car:SetPrimaryPartCFrame(fixedCFrame)
                         wait(1)
                     end
                 end
