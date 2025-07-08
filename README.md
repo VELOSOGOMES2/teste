@@ -1,14 +1,14 @@
--- Tianta AutoFarm Menu (com detecção por assento)
+-- Tianta AutoFarm Menu (teleport por posição Z)
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local player = game.Players.LocalPlayer
 
--- Variáveis de controle
+-- Variáveis
 local autoDrive = false
 local teleportActive = false
 local startPos = nil
 local endPos = nil
 
--- Notificação na tela
+-- Notificação
 function notify(txt)
     pcall(function()
         game.StarterGui:SetCore("SendNotification", {
@@ -19,7 +19,7 @@ function notify(txt)
     end)
 end
 
--- Função confiável para detectar o carro baseado no assento do jogador
+-- Detecção de carro via assento
 local function getCar()
     local character = player.Character or player.CharacterAdded:Wait()
     local humanoid = character:FindFirstChildOfClass("Humanoid")
@@ -33,12 +33,12 @@ local function getCar()
     return nil
 end
 
--- Pressionar ou soltar tecla W
+-- Pressionar tecla W
 local function pressW(state)
     VirtualInputManager:SendKeyEvent(state, "W", false, game)
 end
 
--- Criar interface (GUI)
+-- Criar interface
 local screenGui = Instance.new("ScreenGui", game.CoreGui)
 local frame = Instance.new("Frame", screenGui)
 frame.Size = UDim2.new(0, 220, 0, 260)
@@ -60,7 +60,7 @@ local function createButton(text, order, callback)
     btn.MouseButton1Click:Connect(callback)
 end
 
--- Botão 1: Definir ponto inicial
+-- Botões
 createButton("Definir Ponto Inicial", 1, function()
     local car = getCar()
     if car then
@@ -71,7 +71,6 @@ createButton("Definir Ponto Inicial", 1, function()
     end
 end)
 
--- Botão 2: Definir ponto final
 createButton("Definir Ponto Final", 2, function()
     local car = getCar()
     if car then
@@ -82,7 +81,6 @@ createButton("Definir Ponto Final", 2, function()
     end
 end)
 
--- Botão 3: Iniciar AutoDrive
 createButton("Iniciar Auto Drive", 3, function()
     if autoDrive then
         autoDrive = false
@@ -100,7 +98,6 @@ createButton("Iniciar Auto Drive", 3, function()
     end
 end)
 
--- Botão 4: Ativar Teleport
 createButton("Ativar Teleport", 4, function()
     if teleportActive then
         teleportActive = false
@@ -117,14 +114,13 @@ createButton("Ativar Teleport", 4, function()
                 local car = getCar()
                 if car then
                     local pos = car.PrimaryPart.Position
-                    local dist = (pos - endPos).Magnitude
-                    if dist < 30 then
+                    if pos.Z >= endPos.Z then
                         notify("Teleportando para o início.")
                         car:SetPrimaryPartCFrame(CFrame.new(startPos))
                         wait(1)
                     end
                 end
-                wait(0.5)
+                wait(0.1)
             end
         end)
     end
