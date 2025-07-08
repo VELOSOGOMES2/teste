@@ -41,6 +41,8 @@ local frame = Instance.new("Frame", screenGui)
 frame.Size = UDim2.new(0, 200, 0, 100)
 frame.Position = UDim2.new(0, 20, 0.4, 0)
 frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.Active = true
+frame.Draggable = true -- Aqui está a mágica que permite arrastar a janela!
 
 local button = Instance.new("TextButton", frame)
 button.Size = UDim2.new(1, -20, 0, 40)
