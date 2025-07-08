@@ -37,8 +37,8 @@ end)
 
 -- Configurações
 local autoFarmRunning = false
-local startCFrame = CFrame.new(18.4, 42.6, -4235.6) * CFrame.Angles(0, math.rad(0), 0)
-local endZ = -5149.8
+local startCFrame = CFrame.new(-1.0, 42.6, -4241.4) * CFrame.Angles(0, math.rad(0), 0)
+local endZ = -7245.7
 local shownMessages = {}
 
 -- Notificação
