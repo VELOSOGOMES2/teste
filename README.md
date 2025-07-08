@@ -1,12 +1,14 @@
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local player = game.Players.LocalPlayer
 
--- Config
+-- AutoFarm configs
 local autoFarmRunning = false
-local startCFrame = CFrame.new(18.4, 42.6, -4235.6) * CFrame.Angles(0, math.rad(0), 0)
+
+-- Corrige rotação do carro com math.rad(Y) — ajuste se necessário
+local startCFrame = CFrame.new(18.4, 42.6, -4235.6) * CFrame.Angles(0, math.rad(90), 0)
 local endZ = -5149.8
 
--- Notificação
+-- Envia notificação
 local function notify(txt)
     pcall(function()
         game.StarterGui:SetCore("SendNotification", {
@@ -17,7 +19,7 @@ local function notify(txt)
     end)
 end
 
--- Detecta o carro atual
+-- Pega o carro atual
 local function getCar()
     local char = player.Character or player.CharacterAdded:Wait()
     local humanoid = char:FindFirstChildOfClass("Humanoid")
@@ -31,12 +33,12 @@ local function getCar()
     return nil
 end
 
--- Simula tecla W
+-- Simula pressionar tecla W
 local function pressW(state)
     VirtualInputManager:SendKeyEvent(state, "W", false, game)
 end
 
--- UI
+-- Cria interface com botão ON/OFF
 local screenGui = Instance.new("ScreenGui", game.CoreGui)
 local frame = Instance.new("Frame", screenGui)
 frame.Size = UDim2.new(0, 200, 0, 100)
@@ -52,7 +54,7 @@ button.TextColor3 = Color3.new(1, 1, 1)
 button.Font = Enum.Font.GothamBold
 button.TextSize = 16
 
--- Ativar/desativar AutoFarm
+-- Threads do autofarm
 local autoDriveThread, teleportThread
 
 button.MouseButton1Click:Connect(function()
@@ -82,14 +84,14 @@ button.MouseButton1Click:Connect(function()
             end
         end)
 
-        -- Teleport automático
+        -- Teleporte automático
         teleportThread = task.spawn(function()
             while autoFarmRunning do
                 local car = getCar()
                 if car then
                     local pos = car.PrimaryPart.Position
                     if pos.Z <= endZ then
-                        notify("Teleportando para início...")
+                        notify("Voltando ao início...")
                         car:SetPrimaryPartCFrame(startCFrame)
                         wait(1)
                     end
