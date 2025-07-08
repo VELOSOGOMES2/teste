@@ -1,20 +1,24 @@
 local VirtualInputManager = game:GetService("VirtualInputManager")
-local UserInputService = game:GetService("UserInputService")
 local player = game.Players.LocalPlayer
 
--- AutoFarm config
+-- Configuração
 local autoFarmRunning = false
+local startCFrame = CFrame.new(18.4, 42.6, -4235.6) * CFrame.Angles(0, math.rad(0), 0)
 local endZ = -5149.8
 
--- Notificação
+-- Notificação (garante que só mostra uma vez por tipo)
+local lastNotification = ""
 local function notify(txt)
-    pcall(function()
-        game.StarterGui:SetCore("SendNotification", {
-            Title = "Tianta AutoFarm",
-            Text = txt,
-            Duration = 3
-        })
-    end)
+    if lastNotification ~= txt then
+        lastNotification = txt
+        pcall(function()
+            game.StarterGui:SetCore("SendNotification", {
+                Title = "Tianta AutoFarm",
+                Text = txt,
+                Duration = 3
+            })
+        end)
+    end
 end
 
 -- Detecta o carro atual
@@ -36,20 +40,16 @@ local function pressW(state)
     VirtualInputManager:SendKeyEvent(state, "W", false, game)
 end
 
--- Interface manual drag
-local screenGui = Instance.new("ScreenGui")
-screenGui.ResetOnSpawn = false
-screenGui.Parent = game:GetService("CoreGui")
-
-local frame = Instance.new("Frame")
+-- Interface
+local screenGui = Instance.new("ScreenGui", game.CoreGui)
+screenGui.Name = "TiantaFarmUI"
+local frame = Instance.new("Frame", screenGui)
 frame.Size = UDim2.new(0, 200, 0, 100)
 frame.Position = UDim2.new(0, 20, 0.4, 0)
 frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-frame.BorderSizePixel = 0
 frame.Active = true
-frame.Parent = screenGui
+frame.Draggable = true -- Permite arrastar
 
--- Botão
 local button = Instance.new("TextButton", frame)
 button.Size = UDim2.new(1, -20, 0, 40)
 button.Position = UDim2.new(0, 10, 0, 30)
@@ -59,51 +59,26 @@ button.TextColor3 = Color3.new(1, 1, 1)
 button.Font = Enum.Font.GothamBold
 button.TextSize = 16
 
--- Sistema de mover a interface com o mouse
-local dragging = false
-local dragStart
-local startPos
-
-frame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-        dragStart = input.Position
-        startPos = frame.Position
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
-        end)
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-        local delta = input.Position - dragStart
-        frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-end)
-
 -- Threads
 local autoDriveThread, teleportThread
 
 button.MouseButton1Click:Connect(function()
     autoFarmRunning = not autoFarmRunning
     button.Text = autoFarmRunning and "AutoFarm ON" or "AutoFarm OFF"
+    lastNotification = "" -- reseta para mostrar novas notificações
 
     if autoFarmRunning then
         notify("AutoFarm iniciado")
-        local car
+
+        local car = getCar()
+        if not car then
+            notify("Entra no carro para iniciar")
+        end
+
         repeat
             car = getCar()
-            if not car then
-                notify("Entra no carro para iniciar")
-                wait(1)
-            end
+            wait(1)
         until car
-
-        local rotationY = car.PrimaryPart.Orientation.Y
-        local startCFrame = CFrame.new(18.4, 42.6, -4235.6) * CFrame.Angles(0, math.rad(rotationY), 0)
 
         wait(0.5)
         car:SetPrimaryPartCFrame(startCFrame)
@@ -123,15 +98,15 @@ button.MouseButton1Click:Connect(function()
                     local pos = car.PrimaryPart.Position
                     if pos.Z <= endZ then
                         notify("Teleportando para início...")
-                        local rotY = car.PrimaryPart.Orientation.Y
-                        local fixedCFrame = CFrame.new(18.4, 42.6, -4235.6) * CFrame.Angles(0, math.rad(rotY), 0)
-                        car:SetPrimaryPartCFrame(fixedCFrame)
+                        wait(0.5)
+                        car:SetPrimaryPartCFrame(startCFrame)
                         wait(1)
                     end
                 end
                 wait(0.1)
             end
         end)
+
     else
         notify("AutoFarm parado")
         pressW(false)
