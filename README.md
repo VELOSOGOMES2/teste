@@ -1,14 +1,14 @@
--- Tianta AutoFarm Menu (com definicao de pontos)
+-- Tianta AutoFarm Menu (com detecção por assento)
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local player = game.Players.LocalPlayer
 
--- Variáveis
+-- Variáveis de controle
 local autoDrive = false
 local teleportActive = false
 local startPos = nil
 local endPos = nil
 
--- Função de notificação
+-- Notificação na tela
 function notify(txt)
     pcall(function()
         game.StarterGui:SetCore("SendNotification", {
@@ -19,7 +19,26 @@ function notify(txt)
     end)
 end
 
--- UI
+-- Função confiável para detectar o carro baseado no assento do jogador
+local function getCar()
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if humanoid and humanoid.SeatPart then
+        local seat = humanoid.SeatPart
+        local car = seat:FindFirstAncestorOfClass("Model")
+        if car and car.PrimaryPart then
+            return car
+        end
+    end
+    return nil
+end
+
+-- Pressionar ou soltar tecla W
+local function pressW(state)
+    VirtualInputManager:SendKeyEvent(state, "W", false, game)
+end
+
+-- Criar interface (GUI)
 local screenGui = Instance.new("ScreenGui", game.CoreGui)
 local frame = Instance.new("Frame", screenGui)
 frame.Size = UDim2.new(0, 220, 0, 260)
@@ -41,25 +60,10 @@ local function createButton(text, order, callback)
     btn.MouseButton1Click:Connect(callback)
 end
 
--- Pressionar ou soltar tecla W
-local function pressW(state)
-    VirtualInputManager:SendKeyEvent(state, "W", false, game)
-end
-
--- Função para obter carro
-local function getCar()
-    for _, obj in pairs(workspace:GetDescendants()) do
-        if obj:IsA("Model") and obj:FindFirstChild("Engine") and obj.Name == player.Name then
-            return obj
-        end
-    end
-    return nil
-end
-
 -- Botão 1: Definir ponto inicial
 createButton("Definir Ponto Inicial", 1, function()
     local car = getCar()
-    if car and car.PrimaryPart then
+    if car then
         startPos = car.PrimaryPart.Position
         notify("Ponto inicial definido com sucesso.")
     else
@@ -70,7 +74,7 @@ end)
 -- Botão 2: Definir ponto final
 createButton("Definir Ponto Final", 2, function()
     local car = getCar()
-    if car and car.PrimaryPart then
+    if car then
         endPos = car.PrimaryPart.Position
         notify("Ponto final definido com sucesso.")
     else
@@ -78,7 +82,7 @@ createButton("Definir Ponto Final", 2, function()
     end
 end)
 
--- Botão 3: Iniciar Auto Drive
+-- Botão 3: Iniciar AutoDrive
 createButton("Iniciar Auto Drive", 3, function()
     if autoDrive then
         autoDrive = false
@@ -103,7 +107,7 @@ createButton("Ativar Teleport", 4, function()
         notify("Teleport desativado.")
     else
         if not startPos or not endPos then
-            notify("Define os dois pontos primeiro.")
+            notify("Defina os dois pontos primeiro.")
             return
         end
         teleportActive = true
@@ -111,11 +115,11 @@ createButton("Ativar Teleport", 4, function()
         spawn(function()
             while teleportActive do
                 local car = getCar()
-                if car and car.PrimaryPart then
+                if car then
                     local pos = car.PrimaryPart.Position
                     local dist = (pos - endPos).Magnitude
-                    if dist < 30 then -- tolerância de distância do final
-                        notify("Teleportando de volta ao início.")
+                    if dist < 30 then
+                        notify("Teleportando para o início.")
                         car:SetPrimaryPartCFrame(CFrame.new(startPos))
                         wait(1)
                     end
