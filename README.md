@@ -1,4 +1,4 @@
-flocal VirtualInputManager = game:GetService("VirtualInputManager")
+local VirtualInputManager = game:GetService("VirtualInputManager")
 local player = game.Players.LocalPlayer
 
 -- 🛡️ Anti-Cheat / Anti-Kick / Anti-Ban
