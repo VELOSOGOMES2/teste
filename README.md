@@ -40,12 +40,16 @@ pcall(function()
 end)
 
 -- ⚙️ Config
-local autoFarmRunning = false
-local startCFrame = CFrame.new(-84.2, 42.6, -4175.5) * CFrame.Angles(0, math.rad(90), 0)
-local endZ = -4001.5
+local autoFarmRunning1 = false
+local autoFarmRunning2 = false
+local startCFrame1 = CFrame.new(-84.2, 42.6, -4175.5) * CFrame.Angles(0, math.rad(90), 0)
+local endZ1 = -4001.5
+
+local startCFrame2 = CFrame.new(-192.2, 38.3, -4481.7) * CFrame.Angles(0, math.rad(90), 0)
+local endZ2 = -4350.0
+
 local shownMessages = {}
 
--- 🔔 Notificação
 local function notify(txt)
     if shownMessages[txt] then return end
     shownMessages[txt] = true
@@ -58,7 +62,6 @@ local function notify(txt)
     end)
 end
 
--- 🚘 Detectar carro
 local function getCar()
     local char = player.Character or player.CharacterAdded:Wait()
     local humanoid = char:FindFirstChildOfClass("Humanoid")
@@ -72,14 +75,12 @@ local function getCar()
     return nil
 end
 
--- 🧍‍♂️ Verifica se está no carro
 local function isInCar()
     local char = player.Character
     local humanoid = char and char:FindFirstChildOfClass("Humanoid")
     return humanoid and humanoid.SeatPart ~= nil
 end
 
--- 🎮 Simula W
 local function pressW(state)
     VirtualInputManager:SendKeyEvent(state, "W", false, game)
 end
@@ -128,26 +129,136 @@ header.InputEnded:Connect(function(input)
 end)
 
 -- 🔘 Botão AutoFarm 1
-local button = Instance.new("TextButton", mainFrame)
-button.Size = UDim2.new(1, -20, 0, 40)
-button.Position = UDim2.new(0, 10, 0, 40)
-button.Text = "AutoFarm OFF"
-button.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-button.TextColor3 = Color3.new(1, 1, 1)
-button.Font = Enum.Font.GothamBold
-button.TextSize = 16
+local button1 = Instance.new("TextButton", mainFrame)
+button1.Size = UDim2.new(1, -20, 0, 40)
+button1.Position = UDim2.new(0, 10, 0, 40)
+button1.Text = "AutoFarm 1 OFF"
+button1.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+button1.TextColor3 = Color3.new(1, 1, 1)
+button1.Font = Enum.Font.GothamBold
+button1.TextSize = 16
 
--- 🔘 Botão AutoFarm V2
+-- 🔘 Botão AutoFarm 2
 local button2 = Instance.new("TextButton", mainFrame)
 button2.Size = UDim2.new(1, -20, 0, 40)
-button2.Position = UDim2.new(0, 10, 0, 85)
-button2.Text = "AutoFarm V2 OFF"
+button2.Position = UDim2.new(0, 10, 0, 90)
+button2.Text = "AutoFarm 2 OFF"
 button2.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 button2.TextColor3 = Color3.new(1, 1, 1)
 button2.Font = Enum.Font.GothamBold
 button2.TextSize = 16
 
--- 🔘 Minimizar e Fechar
+-- 🔁 Threads
+local autoDriveThread1, teleportThread1
+local autoDriveThread2, teleportThread2
+
+local function stopAutoFarm1(msg)
+    autoFarmRunning1 = false
+    button1.Text = "AutoFarm 1 OFF"
+    pressW(false)
+    if autoDriveThread1 then task.cancel(autoDriveThread1) end
+    if teleportThread1 then task.cancel(teleportThread1) end
+    if msg then notify(msg) end
+end
+
+local function stopAutoFarm2(msg)
+    autoFarmRunning2 = false
+    button2.Text = "AutoFarm 2 OFF"
+    pressW(false)
+    if autoDriveThread2 then task.cancel(autoDriveThread2) end
+    if teleportThread2 then task.cancel(teleportThread2) end
+    if msg then notify(msg) end
+end
+
+-- 🚗 Iniciar AutoFarm 1
+button1.MouseButton1Click:Connect(function()
+    autoFarmRunning1 = not autoFarmRunning1
+    button1.Text = autoFarmRunning1 and "AutoFarm 1 ON" or "AutoFarm 1 OFF"
+    shownMessages = {}
+
+    if autoFarmRunning1 then
+        notify("✅ AutoFarm 1 iniciado")
+        local car = getCar()
+        if not car then notify("❗ Entra no carro para iniciar") end
+        repeat car = getCar() wait(1) until car
+
+        wait(0.5)
+        car:PivotTo(startCFrame1)
+        car.AssemblyLinearVelocity = Vector3.zero
+        car.AssemblyAngularVelocity = Vector3.zero
+        wait(1)
+
+        autoDriveThread1 = task.spawn(function()
+            while autoFarmRunning1 do
+                pressW(true)
+                wait(10)
+            end
+        end)
+
+        teleportThread1 = task.spawn(function()
+            while autoFarmRunning1 do
+                if not isInCar() then return stopAutoFarm1("⛔ Saiu do carro") end
+                local car = getCar()
+                if not car or not car.Parent then return stopAutoFarm1("🚫 Carro removido") end
+                if car.PrimaryPart.Position.Z >= endZ1 then
+                    car:PivotTo(startCFrame1)
+                    car.AssemblyLinearVelocity = Vector3.zero
+                    car.AssemblyAngularVelocity = Vector3.zero
+                    wait(1)
+                end
+                wait(0.1)
+            end
+        end)
+    else
+        stopAutoFarm1("🛑 AutoFarm 1 parado")
+    end
+end)
+
+-- 🚙 Iniciar AutoFarm 2
+button2.MouseButton1Click:Connect(function()
+    autoFarmRunning2 = not autoFarmRunning2
+    button2.Text = autoFarmRunning2 and "AutoFarm 2 ON" or "AutoFarm 2 OFF"
+    shownMessages = {}
+
+    if autoFarmRunning2 then
+        notify("✅ AutoFarm 2 iniciado")
+        local car = getCar()
+        if not car then notify("❗ Entra no carro para iniciar") end
+        repeat car = getCar() wait(1) until car
+
+        wait(0.5)
+        car:PivotTo(startCFrame2)
+        car.AssemblyLinearVelocity = Vector3.zero
+        car.AssemblyAngularVelocity = Vector3.zero
+        wait(1)
+
+        autoDriveThread2 = task.spawn(function()
+            while autoFarmRunning2 do
+                pressW(true)
+                wait(10)
+            end
+        end)
+
+        teleportThread2 = task.spawn(function()
+            while autoFarmRunning2 do
+                if not isInCar() then return stopAutoFarm2("⛔ Saiu do carro") end
+                local car = getCar()
+                if not car or not car.Parent then return stopAutoFarm2("🚫 Carro removido") end
+                if car.PrimaryPart.Position.Z >= endZ2 then
+                    car:PivotTo(startCFrame2)
+                    car.AssemblyLinearVelocity = Vector3.zero
+                    car.AssemblyAngularVelocity = Vector3.zero
+                    wait(1)
+                end
+                wait(0.1)
+            end
+        end)
+    else
+        stopAutoFarm2("🛑 AutoFarm 2 parado")
+    end
+end)
+
+-- 🔽 Minimizar
 local minimize = Instance.new("TextButton", mainFrame)
 minimize.Size = UDim2.new(0, 25, 0, 25)
 minimize.Position = UDim2.new(1, -55, 0, 2)
@@ -156,7 +267,14 @@ minimize.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
 minimize.TextColor3 = Color3.new(1, 1, 1)
 minimize.Font = Enum.Font.GothamBold
 minimize.TextSize = 16
+minimize.MouseButton1Click:Connect(function()
+    local min = (mainFrame.Size.Y.Offset <= 40)
+    button1.Visible = min
+    button2.Visible = min
+    mainFrame.Size = min and UDim2.new(0, 250, 0, 180) or UDim2.new(0, 250, 0, 35)
+end)
 
+-- ❌ Fechar
 local close = Instance.new("TextButton", mainFrame)
 close.Size = UDim2.new(0, 25, 0, 25)
 close.Position = UDim2.new(1, -30, 0, 2)
@@ -165,144 +283,8 @@ close.BackgroundColor3 = Color3.fromRGB(120, 0, 0)
 close.TextColor3 = Color3.new(1, 1, 1)
 close.Font = Enum.Font.GothamBold
 close.TextSize = 16
-
--- 🔁 Threads
-local autoDriveThread, teleportThread
-local autoFarm2Running = false
-local autoDriveThread2, teleportThread2
-
--- ⛔ Funções parar AutoFarm
-local function stopAutoFarm(reason)
-    autoFarmRunning = false
-    button.Text = "AutoFarm OFF"
-    pressW(false)
-    if autoDriveThread then task.cancel(autoDriveThread) end
-    if teleportThread then task.cancel(teleportThread) end
-    if reason then notify(reason) end
-end
-
-local function stopAutoFarm2(reason)
-    autoFarm2Running = false
-    button2.Text = "AutoFarm V2 OFF"
-    pressW(false)
-    if autoDriveThread2 then task.cancel(autoDriveThread2) end
-    if teleportThread2 then task.cancel(teleportThread2) end
-    if reason then notify(reason) end
-end
-
--- ▶️ AutoFarm 1
-button.MouseButton1Click:Connect(function()
-    autoFarmRunning = not autoFarmRunning
-    button.Text = autoFarmRunning and "AutoFarm ON" or "AutoFarm OFF"
-    shownMessages = {}
-
-    if autoFarmRunning then
-        notify("✅ AutoFarm iniciado")
-        local car = getCar()
-        if not car then notify("❗ Entra no carro para iniciar") end
-        repeat car = getCar() wait(1) until car
-
-        wait(0.5)
-        car:SetPrimaryPartCFrame(startCFrame)
-        wait(1)
-
-        autoDriveThread = task.spawn(function()
-            while autoFarmRunning do
-                pressW(true)
-                wait(10)
-            end
-        end)
-
-        teleportThread = task.spawn(function()
-            while autoFarmRunning do
-                if not isInCar() then
-                    stopAutoFarm("⛔ Saiu do carro, AutoFarm desligado")
-                    return
-                end
-
-                local car = getCar()
-                if not car or not car.Parent then
-                    stopAutoFarm("🚫 Carro removido, AutoFarm desligado")
-                    return
-                end
-
-                if car.PrimaryPart.Position.Z >= endZ then
-                    car:SetPrimaryPartCFrame(startCFrame)
-                    wait(1)
-                end
-                wait(0.1)
-            end
-        end)
-
-    else
-        stopAutoFarm("🛑 AutoFarm parado")
-    end
-end)
-
--- ▶️ AutoFarm V2
-local startCFrame2 = CFrame.new(2978.8, 52.2, -1493.5) * CFrame.Angles(0, math.rad(0), 0)
-local endZ2 = -2094.2
-
-button2.MouseButton1Click:Connect(function()
-    autoFarm2Running = not autoFarm2Running
-    button2.Text = autoFarm2Running and "AutoFarm V2 ON" or "AutoFarm V2 OFF"
-    shownMessages = {}
-
-    if autoFarm2Running then
-        notify("✅ AutoFarm V2 iniciado")
-        local car = getCar()
-        if not car then notify("❗ Entra no carro para iniciar") end
-        repeat car = getCar() wait(1) until car
-
-        wait(0.5)
-        car:SetPrimaryPartCFrame(startCFrame2)
-        wait(1)
-
-        autoDriveThread2 = task.spawn(function()
-            while autoFarm2Running do
-                pressW(true)
-                wait(10)
-            end
-        end)
-
-        teleportThread2 = task.spawn(function()
-            while autoFarm2Running do
-                if not isInCar() then
-                    stopAutoFarm2("⛔ Saiu do carro, AutoFarm V2 desligado")
-                    return
-                end
-
-                local car = getCar()
-                if not car or not car.Parent then
-                    stopAutoFarm2("🚫 Carro removido, AutoFarm V2 desligado")
-                    return
-                end
-
-                if car.PrimaryPart.Position.Z <= endZ2 then
-                    car:SetPrimaryPartCFrame(startCFrame2)
-                    wait(1)
-                end
-                wait(0.1)
-            end
-        end)
-
-    else
-        stopAutoFarm2("🛑 AutoFarm V2 parado")
-    end
-end)
-
--- 🔽 Minimizar
-minimize.MouseButton1Click:Connect(function()
-    local min = (mainFrame.Size.Y.Offset <= 40)
-    button.Visible = min
-    button2.Visible = min
-    mainFrame.Size = min and UDim2.new(0, 250, 0, 180) or UDim2.new(0, 250, 0, 35)
-end)
-
--- ❌ Fechar
 close.MouseButton1Click:Connect(function()
-    stopAutoFarm()
+    stopAutoFarm1()
     stopAutoFarm2()
-    mainFrame:Destroy()
     screenGui:Destroy()
 end)
