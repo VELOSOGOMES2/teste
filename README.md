@@ -203,12 +203,7 @@ button.MouseButton1Click:Connect(function()
         repeat car = getCar() wait(1) until car
 
         wait(0.5)
-        if car and car:FindFirstChild("PrimaryPart") then
-    car:PivotTo(startCFrame)
-    car.AssemblyLinearVelocity = Vector3.zero
-    car.AssemblyAngularVelocity = Vector3.zero
-end
-
+        car:SetPrimaryPartCFrame(startCFrame)
         wait(1)
 
         autoDriveThread = task.spawn(function()
@@ -232,12 +227,7 @@ end
                 end
 
                 if car.PrimaryPart.Position.Z >= endZ then
-                    if car and car:FindFirstChild("PrimaryPart") then
-    car:PivotTo(startCFrame)
-    car.AssemblyLinearVelocity = Vector3.zero
-    car.AssemblyAngularVelocity = Vector3.zero
-end
-
+                    car:SetPrimaryPartCFrame(startCFrame)
                     wait(1)
                 end
                 wait(0.1)
