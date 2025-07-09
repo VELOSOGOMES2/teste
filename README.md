@@ -1,70 +1,73 @@
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local player = game.Players.LocalPlayer
 
--- 🛡️ Anti-Cheat / Anti-Kick / Anti-Ban
+-- 🛡️ Proteções Anti-Kick / Anti-Ban / Anti-Cheat
 pcall(function()
     local mt = getrawmetatable(game)
     setreadonly(mt, false)
-    local oldNamecall = mt.__namecall
-
+    local old = mt.__namecall
     mt.__namecall = newcclosure(function(self, ...)
-        local args = {...}
         local method = getnamecallmethod()
         if tostring(self) == "Kick" or method == "Kick" then
-            warn("🚫 Tentativa de Kick bloqueada!")
+            warn("🚫 Kick bloqueado")
             return nil
         end
         if tostring(self) == "Ban" or method == "Ban" then
-            warn("🚫 Tentativa de Ban detectada!")
+            warn("🚫 Ban detectado")
             return nil
         end
-        return oldNamecall(self, unpack(args))
+        return old(self, ...)
     end)
 
     local char = player.Character or player.CharacterAdded:Wait()
-    local humanoid = char:WaitForChild("Humanoid")
+    local hum = char:WaitForChild("Humanoid")
 
-    humanoid:GetPropertyChangedSignal("Health"):Connect(function()
-        if humanoid.Health <= 0 then
-            humanoid.Health = 100
-            warn("❤️ Tentaram te matar — Vida restaurada")
+    hum:GetPropertyChangedSignal("Health"):Connect(function()
+        if hum.Health <= 0 then
+            hum.Health = 100
+            warn("❤️ Vida restaurada")
         end
     end)
 
-    humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
-        if humanoid.WalkSpeed == 0 then
-            humanoid.WalkSpeed = 16
-            warn("🏃‍♂️ Tentaram travar sua velocidade — Corrigido")
+    hum:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
+        if hum.WalkSpeed == 0 then
+            hum.WalkSpeed = 16
+            warn("🏃 WalkSpeed travado - corrigido")
         end
     end)
 end)
 
--- ⚙️ Config
-local autoFarmRunning = false
-local startCFrame = CFrame.new(-84.2, 42.6, -4175.5) * CFrame.Angles(0, math.rad(90), 0)
-local endZ = -4001.5
-local shownMessages = {}
+-- 📍 Coordenadas do AutoFarm V2
+local startCFrame = CFrame.new(2978.8, 52.2, -1493.5) * CFrame.Angles(0, math.rad(90), 0)
+local endZ = -2094.2
+local autoFarmOn = false
+local pressedKeys = {}
+local shownNotify = {}
 
--- 🔔 Notificação
-local function notify(txt)
-    if shownMessages[txt] then return end
-    shownMessages[txt] = true
+-- 🔄 Utilidades
+local function notify(msg)
+    if shownNotify[msg] then return end
+    shownNotify[msg] = true
     pcall(function()
         game.StarterGui:SetCore("SendNotification", {
-            Title = "🚗 AutoFarm",
-            Text = txt,
+            Title = "🚗 AutoFarm V2",
+            Text = msg,
             Duration = 3
         })
     end)
 end
 
--- 🚘 Detectar carro
+local function pressKey(key, state)
+    if pressedKeys[key] == state then return end
+    pressedKeys[key] = state
+    VirtualInputManager:SendKeyEvent(state, key, false, game)
+end
+
 local function getCar()
-    local char = player.Character or player.CharacterAdded:Wait()
-    local humanoid = char:FindFirstChildOfClass("Humanoid")
-    if humanoid and humanoid.SeatPart then
-        local seat = humanoid.SeatPart
-        local car = seat:FindFirstAncestorOfClass("Model")
+    local char = player.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    if hum and hum.SeatPart then
+        local car = hum.SeatPart:FindFirstAncestorOfClass("Model")
         if car and car.PrimaryPart then
             return car
         end
@@ -72,81 +75,40 @@ local function getCar()
     return nil
 end
 
--- 🧍‍♂️ Verifica se está no carro
 local function isInCar()
     local char = player.Character
-    local humanoid = char and char:FindFirstChildOfClass("Humanoid")
-    return humanoid and humanoid.SeatPart ~= nil
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    return hum and hum.SeatPart ~= nil
 end
 
--- 🎮 Simula W
-local function pressW(state)
-    VirtualInputManager:SendKeyEvent(state, "W", false, game)
-end
+-- 🖼️ Interface Gráfica
+local gui = Instance.new("ScreenGui", game.CoreGui)
+gui.Name = "TiantaAutoFarmV2"
 
--- 🖼️ UI
-local screenGui = Instance.new("ScreenGui", game.CoreGui)
-screenGui.Name = "TiantaFarmUI"
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 220, 0, 110)
+frame.Position = UDim2.new(0, 15, 0.5, -55)
+frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+frame.BorderSizePixel = 0
 
-local mainFrame = Instance.new("Frame", screenGui)
-mainFrame.Size = UDim2.new(0, 250, 0, 130)
-mainFrame.Position = UDim2.new(0, 20, 0.4, 0)
-mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1, 0, 0, 30)
+title.Text = "AutoFarm V2 - RSJGAMES"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 14
 
-local header = Instance.new("TextLabel", mainFrame)
-header.Size = UDim2.new(1, 0, 0, 30)
-header.Position = UDim2.new(0, 0, 0, 0)
-header.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-header.Text = "MOD MENU\nRSJGAMES"
-header.TextColor3 = Color3.new(1, 1, 1)
-header.Font = Enum.Font.GothamBold
-header.TextSize = 14
+local toggle = Instance.new("TextButton", frame)
+toggle.Size = UDim2.new(1, -20, 0, 40)
+toggle.Position = UDim2.new(0, 10, 0, 40)
+toggle.Text = "AutoFarm: OFF"
+toggle.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+toggle.TextColor3 = Color3.new(1, 1, 1)
+toggle.Font = Enum.Font.Gotham
+toggle.TextSize = 16
 
--- 🖱️ Drag
-local dragging = false
-local dragStart, startPos
-header.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-        dragStart = input.Position
-        startPos = mainFrame.Position
-    end
-end)
-header.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement and dragging then
-        local delta = input.Position - dragStart
-        mainFrame.Position = UDim2.new(
-            startPos.X.Scale, startPos.X.Offset + delta.X,
-            startPos.Y.Scale, startPos.Y.Offset + delta.Y
-        )
-    end
-end)
-header.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = false
-    end
-end)
-
--- 🔘 Botões
-local button = Instance.new("TextButton", mainFrame)
-button.Size = UDim2.new(1, -20, 0, 40)
-button.Position = UDim2.new(0, 10, 0, 40)
-button.Text = "AutoFarm OFF"
-button.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-button.TextColor3 = Color3.new(1, 1, 1)
-button.Font = Enum.Font.GothamBold
-button.TextSize = 16
-
-local minimize = Instance.new("TextButton", mainFrame)
-minimize.Size = UDim2.new(0, 25, 0, 25)
-minimize.Position = UDim2.new(1, -55, 0, 2)
-minimize.Text = "-"
-minimize.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-minimize.TextColor3 = Color3.new(1, 1, 1)
-minimize.Font = Enum.Font.GothamBold
-minimize.TextSize = 16
-
-local close = Instance.new("TextButton", mainFrame)
+local close = Instance.new("TextButton", frame)
 close.Size = UDim2.new(0, 25, 0, 25)
 close.Position = UDim2.new(1, -30, 0, 2)
 close.Text = "X"
@@ -155,55 +117,77 @@ close.TextColor3 = Color3.new(1, 1, 1)
 close.Font = Enum.Font.GothamBold
 close.TextSize = 16
 
+-- 🖱️ Arrastar menu
+local dragging, dragStart, startPos
+title.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = frame.Position
+    end
+end)
+title.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(
+            startPos.X.Scale, startPos.X.Offset + delta.X,
+            startPos.Y.Scale, startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+title.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+
 -- 🔁 Threads
-local autoDriveThread, teleportThread
+local autoThread, teleportThread
 
 local function stopAutoFarm(reason)
-    autoFarmRunning = false
-    button.Text = "AutoFarm OFF"
-    pressW(false)
-    if autoDriveThread then task.cancel(autoDriveThread) end
+    autoFarmOn = false
+    toggle.Text = "AutoFarm: OFF"
+    pressKey("W", false)
+    if autoThread then task.cancel(autoThread) end
     if teleportThread then task.cancel(teleportThread) end
     if reason then notify(reason) end
 end
 
--- 🔄 Sistema AutoFarm
-button.MouseButton1Click:Connect(function()
-    autoFarmRunning = not autoFarmRunning
-    button.Text = autoFarmRunning and "AutoFarm ON" or "AutoFarm OFF"
-    shownMessages = {}
+-- ▶️ Início do AutoFarm
+toggle.MouseButton1Click:Connect(function()
+    autoFarmOn = not autoFarmOn
+    toggle.Text = autoFarmOn and "AutoFarm: ON" or "AutoFarm: OFF"
+    shownNotify = {}
 
-    if autoFarmRunning then
+    if autoFarmOn then
         notify("✅ AutoFarm iniciado")
         local car = getCar()
-        if not car then notify("❗ Entra no carro para iniciar") end
-        repeat car = getCar() wait(1) until car
+        if not car then notify("❗ Entra no carro primeiro!") return end
+        repeat car = getCar() wait(0.5) until car
 
         wait(0.5)
         car:SetPrimaryPartCFrame(startCFrame)
         wait(1)
 
-        autoDriveThread = task.spawn(function()
-            while autoFarmRunning do
-                pressW(true)
+        autoThread = task.spawn(function()
+            while autoFarmOn do
+                pressKey("W", true)
                 wait(10)
             end
         end)
 
         teleportThread = task.spawn(function()
-            while autoFarmRunning do
+            while autoFarmOn do
                 if not isInCar() then
-                    stopAutoFarm("⛔ Saiu do carro, AutoFarm desligado")
+                    stopAutoFarm("⛔ Saiu do carro")
                     return
                 end
-
                 local car = getCar()
-                if not car or not car.Parent then
-                    stopAutoFarm("🚫 Carro removido, AutoFarm desligado")
+                if not car or not car.PrimaryPart then
+                    stopAutoFarm("🚫 Carro não encontrado")
                     return
                 end
-
-                if car.PrimaryPart.Position.Z >= endZ then
+                if car.PrimaryPart.Position.Z <= endZ then
                     car:SetPrimaryPartCFrame(startCFrame)
                     wait(1)
                 end
@@ -212,20 +196,12 @@ button.MouseButton1Click:Connect(function()
         end)
 
     else
-        stopAutoFarm("🛑 AutoFarm parado")
+        stopAutoFarm("🛑 AutoFarm desligado")
     end
 end)
 
--- 🔽 Minimizar
-minimize.MouseButton1Click:Connect(function()
-    local min = (mainFrame.Size.Y.Offset <= 40)
-    button.Visible = min
-    mainFrame.Size = min and UDim2.new(0, 250, 0, 130) or UDim2.new(0, 250, 0, 35)
-end)
-
--- ❌ Fechar
+-- ❌ Botão fechar
 close.MouseButton1Click:Connect(function()
-    stopAutoFarm()
-    mainFrame:Destroy()
-    screenGui:Destroy()
+    stopAutoFarm("⛔ Fechado manualmente")
+    gui:Destroy()
 end)
