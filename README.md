@@ -240,8 +240,9 @@ button.MouseButton1Click:Connect(function()
 end)
 
 -- ▶️ AutoFarm V2
-local startCFrame2 = CFrame.new(2978.8, 52.2, -1493.5) * CFrame.Angles(0, math.rad(0), 0)
-local endZ2 = -2094.2
+local startCFrame2 = CFrame.new(2930.6, -16.3, -4933.2) * CFrame.Angles(0, math.rad(0), 0)
+local endZ2 = -5038.8
+
 
 button2.MouseButton1Click:Connect(function()
     autoFarm2Running = not autoFarm2Running
