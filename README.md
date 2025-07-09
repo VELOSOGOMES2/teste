@@ -204,8 +204,6 @@ button.MouseButton1Click:Connect(function()
 
         wait(0.5)
         car:SetPrimaryPartCFrame(startCFrame)
-        car.AssemblyLinearVelocity = Vector3.zero
-        car.AssemblyAngularVelocity = Vector3.zero
         wait(1)
 
         autoDriveThread = task.spawn(function()
@@ -230,13 +228,12 @@ button.MouseButton1Click:Connect(function()
 
                 if car.PrimaryPart.Position.Z >= endZ then
                     car:SetPrimaryPartCFrame(startCFrame)
-                    car.AssemblyLinearVelocity = Vector3.zero
-                    car.AssemblyAngularVelocity = Vector3.zero
                     wait(1)
                 end
                 wait(0.1)
             end
         end)
+
     else
         stopAutoFarm("🛑 AutoFarm parado")
     end
@@ -259,8 +256,6 @@ button2.MouseButton1Click:Connect(function()
 
         wait(0.5)
         car:SetPrimaryPartCFrame(startCFrame2)
-        car.AssemblyLinearVelocity = Vector3.zero
-        car.AssemblyAngularVelocity = Vector3.zero
         wait(1)
 
         autoDriveThread2 = task.spawn(function()
@@ -285,13 +280,12 @@ button2.MouseButton1Click:Connect(function()
 
                 if car.PrimaryPart.Position.Z <= endZ2 then
                     car:SetPrimaryPartCFrame(startCFrame2)
-                    car.AssemblyLinearVelocity = Vector3.zero
-                    car.AssemblyAngularVelocity = Vector3.zero
                     wait(1)
                 end
                 wait(0.1)
             end
         end)
+
     else
         stopAutoFarm2("🛑 AutoFarm V2 parado")
     end
