@@ -45,12 +45,6 @@ local startCFrame = CFrame.new(-84.2, 42.6, -4175.5) * CFrame.Angles(0, math.rad
 local endZ = -4001.5
 local shownMessages = {}
 
--- AutoFarm V2 Config
-local autoFarm2Running = false
-local startCFrame2 = CFrame.new(2978.8, 52.2, -1493.5) * CFrame.Angles(0, math.rad(90), 0)
-local endZ2 = -2094.2
-local autoDriveThread2, teleportThread2
-
 -- 🔔 Notificação
 local function notify(txt)
     if shownMessages[txt] then return end
@@ -133,7 +127,7 @@ header.InputEnded:Connect(function(input)
     end
 end)
 
--- 🔘 Botões
+-- 🔘 Botão AutoFarm 1
 local button = Instance.new("TextButton", mainFrame)
 button.Size = UDim2.new(1, -20, 0, 40)
 button.Position = UDim2.new(0, 10, 0, 40)
@@ -143,6 +137,7 @@ button.TextColor3 = Color3.new(1, 1, 1)
 button.Font = Enum.Font.GothamBold
 button.TextSize = 16
 
+-- 🔘 Botão AutoFarm V2
 local button2 = Instance.new("TextButton", mainFrame)
 button2.Size = UDim2.new(1, -20, 0, 40)
 button2.Position = UDim2.new(0, 10, 0, 85)
@@ -152,6 +147,7 @@ button2.TextColor3 = Color3.new(1, 1, 1)
 button2.Font = Enum.Font.GothamBold
 button2.TextSize = 16
 
+-- 🔘 Minimizar e Fechar
 local minimize = Instance.new("TextButton", mainFrame)
 minimize.Size = UDim2.new(0, 25, 0, 25)
 minimize.Position = UDim2.new(1, -55, 0, 2)
@@ -172,7 +168,10 @@ close.TextSize = 16
 
 -- 🔁 Threads
 local autoDriveThread, teleportThread
+local autoFarm2Running = false
+local autoDriveThread2, teleportThread2
 
+-- ⛔ Funções parar AutoFarm
 local function stopAutoFarm(reason)
     autoFarmRunning = false
     button.Text = "AutoFarm OFF"
@@ -191,7 +190,7 @@ local function stopAutoFarm2(reason)
     if reason then notify(reason) end
 end
 
--- 🔄 Sistema AutoFarm 1
+-- ▶️ AutoFarm 1
 button.MouseButton1Click:Connect(function()
     autoFarmRunning = not autoFarmRunning
     button.Text = autoFarmRunning and "AutoFarm ON" or "AutoFarm OFF"
@@ -240,7 +239,10 @@ button.MouseButton1Click:Connect(function()
     end
 end)
 
--- 🔄 Sistema AutoFarm V2
+-- ▶️ AutoFarm V2
+local startCFrame2 = CFrame.new(2978.8, 52.2, -1493.5) * CFrame.Angles(0, math.rad(0), 0)
+local endZ2 = -2094.2
+
 button2.MouseButton1Click:Connect(function()
     autoFarm2Running = not autoFarm2Running
     button2.Text = autoFarm2Running and "AutoFarm V2 ON" or "AutoFarm V2 OFF"
